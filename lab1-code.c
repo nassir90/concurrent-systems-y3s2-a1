@@ -65,6 +65,7 @@ float lab1_vectorized1(float * restrict a, float * restrict b, int size) {
     sum4 = _mm_hadd_ps(sum4, sum4);
     float sum;
     _mm_store_ss(&sum, sum4);
+    printf("sum: %f\n", sum);
     for (; i < size; i++) sum += a[i] * b[i];
     return sum;
 }
@@ -78,15 +79,19 @@ void lab1_routine2(float * restrict a, float * restrict b, int size) {
     }
 }
 
+// 1-1/(a+1)
+// (a + 1 - 1) / (a + 1)
+// a / (a - 1)
+
 // in the following, size can have any positive value
 void lab1_vectorized2(float * restrict a, float * restrict b, int size) {
     __m128 one4 = _mm_set1_ps(1.0);
+    __m128 two4 = _mm_set1_ps(2.0);
     size_t i;
     for (i = 0; i < (size & ~0b11); i += 4) {
         __m128 b4 = _mm_loadu_ps(b + i);
-        b4 = _mm_add_ps(b4, one4);
-        b4 = _mm_rcp_ps(b4);
-        b4 = _mm_sub_ps(one4, b4);
+        __m128 x4 = _mm_add_ps(b4, one4);
+        b4 = _mm_div_ps(b4, x4);
         _mm_storeu_ps(a + i, b4);
     }
     for (; i < size; i++) a[i] = 1 - (1.0 / (b[i]+1.0));
@@ -129,59 +134,16 @@ void lab1_routine4(float * restrict a, float * restrict b, float * restrict c) {
     }
 }
 
-// void lab1_vectorized4(float * restrict a, float * restrict b, float * restrict c) {
-//     int i;
-//     for(i=0; i<2048; i=i+4) {
-//         __m128 b4 = _mm_loadu_ps(&(b[i]));
-//         __m128 c4 = _mm_loadu_ps(&(c[i]));
-// 
-//         __m128 b4_b2b2b0b0 = _mm_shuffle_ps(b4, b4, _MM_SHUFFLE(2,2,0,0)); // b2 b2 b0 b0
-//         __m128 b4_b3b3blbl = _mm_shuffle_ps(b4, b4, _MM_SHUFFLE(3,3,1,1)); // b3 b3 bl bl
-//         __m128 c4_c1cOc3c2 = _mm_shuffle_ps(c4, c4, _MM_SHUFFLE(2,3,0,1)); // c2 c3 c0 cl
-// 
-//         __m128 firstMulOp = _mm_mul_ps(b4_b2b2b0b0, c4);
-//         __m128 secondMulOp = _mm_mul_ps(b4_b3b3blbl, c4_c1cOc3c2);
-// 
-//         __m128 mask = _mm_setr_ps(-1, 0, -1, 0);
-//         mask = _mm_cmplt_ps(mask, _mm_setzero_ps());
-// 
-//         __m128 subResult = _mm_sub_ps(firstMulOp, secondMulOp);
-//         __m128 addResult = _mm_add_ps(firstMulOp, secondMulOp);
-// 
-//         __m128 tempResult = _mm_and_ps(mask, subResult);
-//         __m128 a4 = _mm_andnot_ps(mask, addResult);
-//         a4 = _mm_or_ps(a4, tempResult);
-//         
-//         _mm_storeu_ps(&(a[i]), a4);
-//     }
-// }
-
-void lab1_vectorized4(float * restrict a, float * restrict b, float * restrict  c) {
+void lab1_vectorized4(float * restrict a, float * restrict b, float * restrict c) {
     for ( int i = 0; i < 2048; i = i+4) {
         __m128 b4 = _mm_loadu_ps(b + i);
         __m128 c4 = _mm_loadu_ps(c + i);
-
-        __m128 final;
-
-        if (1) {
-            __m128 u4 = _mm_shuffle_ps(c4, c4, _MM_SHUFFLE(2, 2, 0, 0));
-            u4 = _mm_mul_ps(b4, u4);
-            __m128 y1 = _mm_shuffle_ps(b4, b4, _MM_SHUFFLE(2, 3, 0, 1));
-            __m128 d4 = _mm_shuffle_ps(c4, c4, _MM_SHUFFLE(3, 3, 1, 1));
-            d4 = _mm_mul_ps(y1, d4);
-            final = _mm_addsub_ps(u4, d4);
-        } else {
-            __m128 p4x = _mm_mul_ps(b4, c4);
-            p4x = _mm_hsub_ps(p4x, p4x);
-            p4x = _mm_shuffle_ps(p4x, p4x, _MM_SHUFFLE(1, 1, 0, 0));
-            __m128 p4y = _mm_shuffle_ps(b4, b4, _MM_SHUFFLE(2, 3, 0, 1));
-            p4y = _mm_mul_ps(p4y, c4);
-            p4y = _mm_hadd_ps(p4y, p4y);
-            p4y = _mm_shuffle_ps(p4y, p4y, _MM_SHUFFLE(1, 1, 0, 0));
-            p4y = _mm_blend_ps(p4x, p4y, 0b1010);
-            final = p4y;
-        }
-        
+        __m128 u4 = _mm_shuffle_ps(c4, c4, _MM_SHUFFLE(2, 2, 0, 0));
+        u4 = _mm_mul_ps(b4, u4);
+        __m128 y1 = _mm_shuffle_ps(b4, b4, _MM_SHUFFLE(2, 3, 0, 1));
+        __m128 d4 = _mm_shuffle_ps(c4, c4, _MM_SHUFFLE(3, 3, 1, 1));
+        d4 = _mm_mul_ps(y1, d4);
+        __m128 final = _mm_addsub_ps(u4, d4);
         _mm_storeu_ps(a + i, final);
     }
 }
