@@ -52,10 +52,14 @@ float lab1_routine1(float * restrict a, float * restrict b,
 }
 
 // insert vectorized code for routine1 here
-float lab1_vectorized1(float * restrict a, float * restrict b, int size) {
-    __m128 sum4 = _mm_setzero_ps();
-    size_t i;
-    for (i = 0; i < (size & ~0b11); i += 4) {
+float lab1_vectorized1(float *restrict a, float *restrict b, int size) {
+    size_t limit = size & ~0b11;
+    float i4[4] = {0, 0, 0, 0};
+    for (size_t j = limit; j < size; j++) {
+        i4[j - limit] = a[j] * b[j];
+    }
+    __m128 sum4 = _mm_loadu_ps( i4);
+    for (size_t i = 0; i < limit; i += 4) {
         __m128 a4 = _mm_loadu_ps(a + i);
         __m128 b4 = _mm_loadu_ps(b + i);
         __m128 p4 = _mm_mul_ps(a4, b4);
@@ -65,8 +69,6 @@ float lab1_vectorized1(float * restrict a, float * restrict b, int size) {
     sum4 = _mm_hadd_ps(sum4, sum4);
     float sum;
     _mm_store_ss(&sum, sum4);
-    printf("sum: %f\n", sum);
-    for (; i < size; i++) sum += a[i] * b[i];
     return sum;
 }
 
@@ -79,19 +81,14 @@ void lab1_routine2(float * restrict a, float * restrict b, int size) {
     }
 }
 
-// 1-1/(a+1)
-// (a + 1 - 1) / (a + 1)
-// a / (a - 1)
-
 // in the following, size can have any positive value
 void lab1_vectorized2(float * restrict a, float * restrict b, int size) {
     __m128 one4 = _mm_set1_ps(1.0);
-    __m128 two4 = _mm_set1_ps(2.0);
     size_t i;
     for (i = 0; i < (size & ~0b11); i += 4) {
         __m128 b4 = _mm_loadu_ps(b + i);
-        __m128 x4 = _mm_add_ps(b4, one4);
-        b4 = _mm_div_ps(b4, x4);
+        __m128 d4 = _mm_add_ps(b4, one4);
+        b4 = _mm_div_ps(b4, d4);
         _mm_storeu_ps(a + i, b4);
     }
     for (; i < size; i++) a[i] = 1 - (1.0 / (b[i]+1.0));
@@ -112,15 +109,14 @@ void lab1_routine3(float * restrict a, float * restrict b, int size) {
 void lab1_vectorized3(float * restrict a, float * restrict b, int size) {
     __m128 zero4 = _mm_setzero_ps();
     size_t i;
-  
-    for (i = 0; i < size & (~0b11); i += 4) {
+    for (i = 0; i < (size & ~0b11); i += 4) {
         __m128 a4 = _mm_loadu_ps(a + i);
         __m128 b4 = _mm_loadu_ps(b + i);
         __m128 mask = _mm_cmplt_ps(a4, zero4);
-        __m128 r4 = _mm_blendv_ps(b4, a4, mask);
-        _mm_storeu_ps(a + i, a4);
+        __m128 r4 = _mm_blendv_ps(a4, b4, mask);
+        _mm_storeu_ps(a + i, r4);
     }
-    for (; i < size; i++) if ( a[i] < 0.0 ) a[i] = b[i];
+    for (; i < size; i++) if (a[i] < 0.0) a[i] = b[i];
 }
 
 /********************* routine 4 ***********************/
