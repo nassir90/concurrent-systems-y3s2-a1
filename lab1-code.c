@@ -170,6 +170,7 @@ void lab1_vectorized5(unsigned char * restrict a, unsigned char * restrict b, in
 void lab1_routine6(float * restrict a, float * restrict b,
                    float * restrict c) {
     a[0] = 0.0;
+    int m = 0;
     for ( int i = 1; i < 1023; i++ ) {
         float sum = 0.0;
         for ( int j = 0; j < 3; j++ ) {
@@ -177,6 +178,7 @@ void lab1_routine6(float * restrict a, float * restrict b,
         }
         // printf("novec sum: %f\n", sum);
         a[i] = sum;
+        // if (m++ > 20) break;
     }
     a[1023] = 0.0;
 }
@@ -191,28 +193,55 @@ void format_vector(const char *name, __m128 v) {
 
 void lab1_vectorized6(float *restrict a, float *restrict b, float *restrict c) {
     
-    __m128 c4 = _mm_set_ps(0.0, c[0], c[1], c[2]);
+    __m128 c4 = _mm_set_ps(0.0, c[2], c[1], c[0]);
     a[0] = 0.0;
     int i;
-    __m128 b4 = _mm_set_ps(0.0, b[0], b[1], b[2]);
+    __m128 b4 = _mm_set_ps(0.0, b[2], b[1], b[0]);
+    
     int m;
-    for (i = 1; i < 1020; i++) {
+    int approach = 0;
+    int inc = (approach == 1) ? 1 : 4;
+    
+    for (i = 1; i < 1010; i += inc) {
+        // if (i % 64 == 0) _mm_prefetch(a, _MM_HINT_T0);
         // __m128 z4 = _mm_mul_ps(b4, c4);
         // z4 = _mm_hadd_ps(z4, z4);
         // z4 = _mm_hadd_ps(z4, z4);
         // printf("\n");
-         // format_vector("z4", z4);
-         // format_vector("b4", b4);
-         // format_vector("c4", c4);
-        __m128 r4 = _mm_dp_ps(b4, c4, 0b11111111);
-        // format_vector("r4", r4);
-         _mm_store_ss(a + i, r4);
+        // format_vector("z4", z4);
+        // format_vector("b4", b4);
+        // format_vector("c4", c4);
+
+        if (approach == 0) {
+            // ALL improvements come from removing the loop
+            __m128 dat =
+                _mm_set_ps(b[i + 2] * c[0] + b[i + 3] * c[1] + b[i + 4] * c[2],
+                           b[i + 1] * c[0] + b[i + 2] * c[1] + b[i + 3] * c[2],
+                           b[i]     * c[0] + b[i + 1] * c[1] + b[i + 2] * c[2],
+                           b[i - 1] * c[0] + b[i]     * c[1] + b[i + 1] * c[2]);
+            _mm_storeu_ps(a + i -1, dat);
+        } else if (approach == 1) {
+            __m128 r4 = _mm_mul_ps(b4, c4);
+            r4 = _mm_hadd_ps(r4, r4);
+            r4 = _mm_hadd_ps(r4, r4);
+            // format_vector("r4", r4);
+            // printf("i is: %d\n", i);
+            _mm_storeu_ps(a + i, r4);
+            b4 = _mm_loadu_ps(b + i);
+            // printf("still alive\n");
+        }
+        
+        // format_vector("dat", dat);
+        // if (m++ > 5) break;
+        continue;
+        
          // printf("hmm: %f\n", b[i + 2]);
-         // printf("how we lookin: [%f, %f, %f, %f]\n", b[i-1], b[i], b[i+1], b[i+2]);
-         // printf("vec sum: %f\n", a[i]);
-        b4 = _mm_move_ss(_mm_shuffle_ps(b4, b4, _MM_SHUFFLE(0, 1, 0, 0)),
-                         _mm_set1_ps(b[i + 2]));
-        // if (m++ > 4) break;
+         // printf("how we lookin: [%f, %f, %f, %f]\n", b[i-1], b[i], b[i+1],
+         // b[i+2]); printf("vec sum: %f\n", a[i]);
+         // b4 = _mm_set_ps(0.0, b[i+2], b[i+1], b[i]);
+         // __m128 bnext = _mm_set1_ps(b[i + 2]);
+         // __m128 bshuf = _mm_shuffle_ps(b4, b4, _MM_SHUFFLE(0, 1, 0, 0));
+         // b4 = _mm_blend_ps(bshuf, bnext, 0b0001);
     }
     for (; i < 1023; i++ ) {
         float sum = 0.0;
@@ -222,4 +251,9 @@ void lab1_vectorized6(float *restrict a, float *restrict b, float *restrict c) {
         a[i] = sum;
     }
     a[1023] = 0.0;
+
+    for (int i = 1; i < 1023; i++) {
+
+        // printf("vec sum: %f\n", a[i]);
+    }
 }
