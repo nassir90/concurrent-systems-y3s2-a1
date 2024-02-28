@@ -8,7 +8,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <time.h>
 #include "lab1-code.h"
+
+#define BENCH(code, postcode)                                                  \
+  {                                                                            \
+    struct timespec start, stop;                                               \
+    clock_gettime(CLOCK_MONOTONIC, &start);                                    \
+    code;                                                                      \
+    clock_gettime(CLOCK_MONOTONIC, &stop);                                     \
+    postcode;                                                                  \
+    double accum = (stop.tv_sec - start.tv_sec) +                              \
+    (double)(stop.tv_nsec - start.tv_nsec) / (double)1000000000L;     \
+    printf("\ttook: %lf (%ld)\n", accum, stop.tv_nsec - start.tv_nsec);                            \
+  }
 
 /* test code for the routines to be vectorized */
 
@@ -204,6 +217,14 @@ void test_routine5() {
   unsigned char * b = new_random_char_array(size);
   int sum_diff;
 
+  // size_t count = 1000000;
+  // BENCH(for (size_t j = 0; j < count; j++)
+  //           lab1_vectorized5(out_vectorized, b, size);,
+  //       printf("vectorised #5:\n"););
+  // BENCH(for (size_t j = 0; j < count; j++)
+  //           lab1_routine5(out_correct, b, size);,
+  //       printf("plain #5:\n"););
+
   lab1_routine5(out_correct, b, size);
   lab1_vectorized5(out_vectorized, b, size);
 
@@ -227,8 +248,14 @@ void test_routine6() {
 
   gen_test_arrays(&out_correct, &out_vectorized, &b, &c, size);
 
-  lab1_routine6(out_correct, b, c);
-  lab1_vectorized6(out_vectorized, b, c);
+  size_t count = 100000;
+  BENCH(for (size_t j = 0; j < count; j++) lab1_routine6(out_correct, b, c);
+        , printf("plain #6:\n"););
+  BENCH(for (size_t j = 0; j < count; j++) lab1_vectorized6(out_vectorized, b, c);,
+        printf("vectorised #6:\n"););
+  
+  // lab1_routine6(out_correct, b, c);
+  // lab1_vectorized6(out_vectorized, b, c);
 
   diff = diff_square(out_correct, out_vectorized, size);
 

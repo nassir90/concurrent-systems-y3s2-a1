@@ -108,6 +108,7 @@ void lab1_routine3(float * restrict a, float * restrict b, int size) {
 // in the following, size can have any positive value
 void lab1_vectorized3(float * restrict a, float * restrict b, int size) {
     __m128 zero4 = _mm_setzero_ps();
+    
     size_t i;
     for (i = 0; i < (size & ~0b11); i += 4) {
         __m128 a4 = _mm_loadu_ps(a + i);
@@ -154,10 +155,12 @@ void lab1_routine5(unsigned char * restrict a, unsigned char * restrict b, int s
 }
 
 void lab1_vectorized5(unsigned char * restrict a, unsigned char * restrict b, int size) {
-    size_t i;
-    for (i = 0; i < (size & ~0b1111); i += 16) {
-        __m128i b4 = _mm_loadu_si128((void*) b + i);
-        _mm_storeu_si128((void*) a + i, b4);
+    int i = 0;
+    __m128i
+        *av = (__m128i *)a,
+        *bv = (__m128i *)b;
+    for (; i < (size & 0b1111); i += 16) {
+        _mm_store_si128(av++, _mm_load_si128(bv++));
     }
     for (; i < size; i++) a[i] = b[i];
 }
@@ -170,8 +173,9 @@ void lab1_routine6(float * restrict a, float * restrict b,
     for ( int i = 1; i < 1023; i++ ) {
         float sum = 0.0;
         for ( int j = 0; j < 3; j++ ) {
-            sum = sum +  b[i+j-1] * c[j];
+            sum = sum + b[i + j - 1] * c[j];
         }
+        // printf("novec sum: %f\n", sum);
         a[i] = sum;
     }
     a[1023] = 0.0;
@@ -186,15 +190,29 @@ void format_vector(const char *name, __m128 v) {
 }
 
 void lab1_vectorized6(float *restrict a, float *restrict b, float *restrict c) {
-    __m128 c4 = _mm_set_ps(0.0, c[2], c[1], c[0]);
+    
+    __m128 c4 = _mm_set_ps(0.0, c[0], c[1], c[2]);
     a[0] = 0.0;
     int i;
-    for (i = 1; i < 1020; i ++ ) {
-        __m128 b4 = _mm_loadu_ps(b + i - 1);
-        __m128 r4 = _mm_mul_ps(b4, c4);
-        r4 = _mm_hadd_ps(r4, r4);
-        r4 = _mm_hadd_ps(r4, r4);
-        _mm_store_ss(a + i, r4);
+    __m128 b4 = _mm_set_ps(0.0, b[0], b[1], b[2]);
+    int m;
+    for (i = 1; i < 1020; i++) {
+        // __m128 z4 = _mm_mul_ps(b4, c4);
+        // z4 = _mm_hadd_ps(z4, z4);
+        // z4 = _mm_hadd_ps(z4, z4);
+        // printf("\n");
+         // format_vector("z4", z4);
+         // format_vector("b4", b4);
+         // format_vector("c4", c4);
+        __m128 r4 = _mm_dp_ps(b4, c4, 0b11111111);
+        // format_vector("r4", r4);
+         _mm_store_ss(a + i, r4);
+         // printf("hmm: %f\n", b[i + 2]);
+         // printf("how we lookin: [%f, %f, %f, %f]\n", b[i-1], b[i], b[i+1], b[i+2]);
+         // printf("vec sum: %f\n", a[i]);
+        b4 = _mm_move_ss(_mm_shuffle_ps(b4, b4, _MM_SHUFFLE(0, 1, 0, 0)),
+                         _mm_set1_ps(b[i + 2]));
+        // if (m++ > 4) break;
     }
     for (; i < 1023; i++ ) {
         float sum = 0.0;
