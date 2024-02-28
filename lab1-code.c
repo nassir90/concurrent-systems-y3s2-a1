@@ -156,8 +156,8 @@ void lab1_routine5(unsigned char * restrict a, unsigned char * restrict b, int s
 void lab1_vectorized5(unsigned char * restrict a, unsigned char * restrict b, int size) {
     size_t i;
     for (i = 0; i < (size & ~0b1111); i += 16) {
-        __m128i b4 = _mm_loadu_si128(b + i);
-        _mm_storeu_si128(a + i, b4);
+        __m128i b4 = _mm_loadu_si128((void*) b + i);
+        _mm_storeu_si128((void*) a + i, b4);
     }
     for (; i < size; i++) a[i] = b[i];
 }
