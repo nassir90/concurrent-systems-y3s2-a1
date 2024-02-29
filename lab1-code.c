@@ -157,10 +157,10 @@ void lab1_routine5(unsigned char * restrict a, unsigned char * restrict b, int s
 void lab1_vectorized5(unsigned char * restrict a, unsigned char * restrict b, int size) {
     int i = 0;
     __m128i
-        *av = (__m128i *)a,
-        *bv = (__m128i *)b;
+        *av = (__m128i_u *)a,
+        *bv = (__m128i_u *)b;
     for (; i < (size & 0b1111); i += 16) {
-        _mm_store_si128(av++, _mm_load_si128(bv++));
+        _mm_storeu_si128(av++, _mm_loadu_si128(bv++));
     }
     for (; i < size; i++) a[i] = b[i];
 }
@@ -176,41 +176,37 @@ void lab1_routine6(float * restrict a, float * restrict b,
         for ( int j = 0; j < 3; j++ ) {
             sum = sum + b[i + j - 1] * c[j];
         }
-        // a[i] = sum;
-        a[i] = b[i - 1] * c[0] + b[i]     * c[1] + b[i + 1] * c[2];
+        a[i] = sum;
     }
     a[1023] = 0.0;
 }
 
 void lab1_vectorized6(float *restrict a, float *restrict b, float *restrict c) {
-    
     a[0] = 0.0;
     a[1023] = 0.0;
     
     int i;
-    
     __m128 c0 = _mm_set1_ps(c[0]);
     __m128 c1 = _mm_set1_ps(c[1]);
     __m128 c2 = _mm_set1_ps(c[2]);
     c0 = _mm_shuffle_ps(c0, c0, _MM_SHUFFLE(0, 0, 0, 0));
     c1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 0, 0));
     c2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 0, 0));
-    
-    __m128 b4 = _mm_loadu_ps(b);
 
     for (i = 1; i < 1020; i += 4) {
-        __m128 b1, b2, b3;
+        __m128 b1, b2, b3, sum;
         b1 = _mm_loadu_ps(b + i - 1);
-        b2 = _mm_loadu_ps(b + i);
-        b3 = _mm_loadu_ps(b + i + 1);
         b1 = _mm_mul_ps(b1, c0);
+        b2 = _mm_loadu_ps(b + i);
         b2 = _mm_mul_ps(b2, c1);
+        b3 = _mm_loadu_ps(b + i + 1);
         b3 = _mm_mul_ps(b3, c2);
-        __m128 sum = b1;
+        sum = b1;
         sum = _mm_add_ps(sum, b2);
         sum = _mm_add_ps(sum, b3);
         _mm_storeu_ps(a + i, sum);
     }
+    
     for (; i < 1023; i++ ) {
         float sum = 0.0;
         for ( int j = 0; j < 3; j++ ) {

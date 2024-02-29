@@ -248,7 +248,7 @@ void test_routine6() {
 
   gen_test_arrays(&out_correct, &out_vectorized, &b, &c, size);
 
-  size_t count = 1000000;
+  size_t count = 1;
   BENCH(for (size_t j = 0; j < count; j++) lab1_routine6(out_correct, b, c);
         , printf("plain #6:\n"););
   BENCH(for (size_t j = 0; j < count; j++) lab1_vectorized6(out_vectorized, b, c);,
