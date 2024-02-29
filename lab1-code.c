@@ -185,15 +185,16 @@ void lab1_vectorized6(float *restrict a, float *restrict b, float *restrict c) {
     a[0] = 0.0;
     a[1023] = 0.0;
     
-    int i;
     __m128 c0 = _mm_set1_ps(c[0]);
-    __m128 c1 = _mm_set1_ps(c[1]);
-    __m128 c2 = _mm_set1_ps(c[2]);
     c0 = _mm_shuffle_ps(c0, c0, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 c1 = _mm_set1_ps(c[1]);
     c1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 c2 = _mm_set1_ps(c[2]);
     c2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 0, 0));
+    
+    int i = 1;
 
-    for (i = 1; i < 1020; i += 4) {
+    for (; i < 1020; i += 4) {
         __m128 b1, b2, b3, sum;
         b1 = _mm_loadu_ps(b + i - 1);
         b1 = _mm_mul_ps(b1, c0);
