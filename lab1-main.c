@@ -126,8 +126,17 @@ void test_routine1() {
   float out_correct, out_vectorized;
   double diff;
 
-  out_vectorized = lab1_vectorized1(a, b, size);
-  out_correct = lab1_routine1(a, b, size);
+  size_t count = 100000;
+  printf("Benchmarking #1 with %ld iterations\n", count);
+  BENCH(for (size_t j = 0; j < count; j++)
+             lab1_routine1(a, b, size);,
+         printf("plain #1:\n"););
+  BENCH(for (size_t j = 0; j < count; j++)
+            lab1_vectorized1(a, b, size);,
+        printf("vectorised #1:\n"););
+
+  // out_vectorized = lab1_vectorized1(a, b, size);
+  // out_correct = lab1_routine1(a, b, size);
   //fprintf(stderr, "%f %f\n", out_correct, out_vectorized);
   
   free(a);
@@ -146,8 +155,17 @@ void test_routine2() {
   float * b = new_random_float_array(size, 0);
   double diff;
 
-  lab1_routine2(out_correct, b, size);
-  lab1_vectorized2(out_vectorized, b, size);
+  size_t count = 100000;
+  printf("Benchmarking #2 with %ld iterations\n", count);
+  BENCH(for (size_t j = 0; j < count; j++)
+             lab1_routine2(out_correct, b, size);,
+         printf("plain #2:\n"););
+  BENCH(for (size_t j = 0; j < count; j++)
+            lab1_vectorized2(out_vectorized, b, size);
+        , printf("vectorised #2:\n"););
+  
+  // lab1_routine2(out_correct, b, size);
+  // lab1_vectorized2(out_vectorized, b, size);
 
   diff = diff_square(out_correct, out_vectorized, size);
 
@@ -176,10 +194,20 @@ void test_routine3() {
   float * b = new_random_float_array(size, 1);
   double diff;
 
-  // fprintf(stderr, "out_correct %p, out_vectorized %p, b %p, size %d\n", out_correct, out_vectorized, b, size);
+  // fprintf(stderr, "out_correct %p, out_vectorized %p, b %p, size %d\n",
+  // out_correct, out_vectorized, b, size);
 
-  lab1_routine3(out_correct, b, size);
-  lab1_vectorized3(out_vectorized, b, size);
+  size_t count = 100000;
+  printf("Benchmarking #3 with %ld iterations\n", count);
+  BENCH(for (size_t j = 0; j < count; j++)
+             lab1_routine3(out_correct, b, size);,
+         printf("plain #3:\n"););
+  BENCH(for (size_t j = 0; j < count; j++)
+            lab1_vectorized3(out_vectorized, b, size);,
+        printf("vectorised #3:\n"););
+
+  // lab1_routine3(out_correct, b, size);
+  // lab1_vectorized3(out_vectorized, b, size);
 
   diff = diff_square(out_correct, out_vectorized, size);
 
